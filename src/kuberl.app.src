@@ -10,7 +10,7 @@
      ctx,
      backoff
     ]},
-  {env, [{host, "localhost:8001"}]},
+  {env, []},
   {modules, []},
 
   {maintainers, ["Tristan Sloughter"]},

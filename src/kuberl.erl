@@ -10,14 +10,19 @@
          set_default_cfg/0,
          set_default_cfg/1]).
 
+%% If in in-cluster environment, and with proper privileges to this pod,
+%% get token information from following path
+-define(service_account_path, "/var/run/secrets/kubernetes.io/serviceaccount").
+-define(kube_master, "https://kubernetes.default.svc.cluster.local").
+
 new_cfg() ->
-    #{host => application:get_env(kuberl, host, "localhost:8001"),
+    #{host => application:get_env(kuberl, host, host()),
       hackney_opts => [{ssl_options, [{server_name_indication, disable}]}],
       auth => auth(),
       api_key_prefix => #{<<"authorization">> => <<"Bearer">>}}.
 
 auth() ->
-    #{'BearerToken' => application:get_env(kuberl, api_key, undefined)}.
+    #{'BearerToken' => application:get_env(kuberl, api_key, token())}.
 
 cfg_with_bearer_token(Token) ->
     cfg_with_bearer_token(new_cfg(), Token).
@@ -44,3 +49,19 @@ set_default_cfg() ->
 
 set_default_cfg(Cfg) ->
     application:set_env(kuberl, config, Cfg).
+
+token() ->
+    case file:read_file(filename:join(?service_account_path, "token")) of
+        {ok, Data} ->
+            Data;
+        _ ->
+            undefined
+    end.
+
+host() ->
+    case file:read_file(filename:join(?service_account_path, "token")) of
+        {ok, _} ->
+            ?kube_master;
+        _ ->
+            "localhost:8001"
+    end.
